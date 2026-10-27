@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}{{ error.code }} | VoyageAI{% endblock %}
+{% block content %}
+<section class="setup-screen active">
+  <div class="intro-heading">
+    <h1>{{ error.code }} <span class="gradient-text">{{ error.name }}</span></h1>
+    <p class="subtitle">{{ error.description }}</p>
+    <p><a class="primary-button" href="{{ url_for('index') }}">Back to the planner</a></p>
+  </div>
+</section>
+{% endblock %}

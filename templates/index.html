@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="setup-screen active">
+  <div class="intro-heading">
+    <h1>Your AI-Powered <span class="gradient-text">Adventure Planner</span></h1>
+    <p class="subtitle">Select your dream location, budget, and travel preferences. Our AI will curate the ultimate itinerary, stays, and travel routes.</p>
+  </div>
+
+  <div class="setup-card glass-panel">
+    <form method="post" action="{{ url_for('generate') }}">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+
+      <div class="form-group">
+        <label for="destination-input"><i class="fa-solid fa-map-pin"></i> Where do you want to go?</label>
+        <div class="input-with-icon">
+          <i class="fa-solid fa-magnifying-glass input-icon"></i>
+          <input type="text" id="destination-input" name="destination" list="city-presets"
+                 value="{{ form.destination }}" maxlength="200"
+                 placeholder="e.g. Jaipur, Tokyo, Paris, Rome..." autocomplete="off" required>
+          <datalist id="city-presets">
+            {% for city in all_presets %}<option value="{{ city }}">{% endfor %}
+          </datalist>
+        </div>
+        <div class="suggestions-hint">
+          {% for label, cities in presets %}
+          <strong>{{ label }}:</strong>
+          {% for city in cities %}<a class="preset-tag" href="{{ url_for('index', destination=city) }}">{{ city }}</a>{% if not loop.last %}, {% endif %}{% endfor %}
+          {% if not loop.last %}<br>{% endif %}
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="duration-select"><i class="fa-solid fa-calendar-days"></i> Trip Duration</label>
+          <select id="duration-select" name="duration">
+            {% for value, label in durations %}
+            <option value="{{ value }}"{% if value == form.duration %} selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group budget-group">
+          <span class="field-label"><i class="fa-solid fa-wallet"></i> Budget Class</span>
+          <div class="chips-selector">
+            {% for value, icon, label in budgets %}
+            <label class="chip">
+              <input type="radio" name="budget" value="{{ value }}"{% if value == form.budget %} checked{% endif %}>
+              <i class="fa-solid {{ icon }}"></i>
+              <span>{{ label }}</span>
+            </label>
+            {% endfor %}
+          </div>
+          <div class="input-with-icon custom-budget-input">
+            <i class="fa-solid fa-hand-holding-dollar input-icon"></i>
+            <input type="text" name="custom_budget" value="{{ form.custom_budget }}" maxlength="100"
+                   placeholder="e.g. $150/day, ₹20,000 total, etc.">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <span class="field-label"><i class="fa-solid fa-wand-magic-sparkles"></i> Travel Style</span>
+        <div class="chips-selector wrap">
+          {% for value, icon, label in styles %}
+          <label class="chip">
+            <input type="radio" name="style" value="{{ value }}"{% if value == form.style %} checked{% endif %}>
+            <i class="fa-solid {{ icon }}"></i>
+            <span>{{ label }}</span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <span class="field-label"><i class="fa-solid fa-users"></i> Companion</span>
+        <div class="chips-selector wrap">
+          {% for value, icon, label in companions %}
+          <label class="chip">
+            <input type="radio" name="companion" value="{{ value }}"{% if value == form.companion %} checked{% endif %}>
+            <i class="fa-solid {{ icon }}"></i>
+            <span>{{ label }}</span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <button type="submit" class="primary-button btn-large">
+        <span>Generate Itinerary</span>
+        <i class="fa-solid fa-compass fa-spin-hover"></i>
+      </button>
+    </form>
+  </div>
+</section>
+{% endblock %}
