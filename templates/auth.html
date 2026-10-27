@@ -1,0 +1,74 @@
+{% extends "index.html" %}
+{% block title %}{{ 'Log in' if mode == 'login' else 'Create account' }} | VoyageAI{% endblock %}
+{% block modals %}
+<div class="modal active">
+  <div class="modal-content glass-panel animated scaleUp">
+    <div class="modal-header">
+      <h3><i class="fa-solid fa-user-lock"></i> Welcome Explorer</h3>
+      <a href="{{ url_for('index') }}" class="icon-button close-btn" title="Close"><i class="fa-solid fa-xmark"></i></a>
+    </div>
+    <div class="modal-body">
+      <div class="auth-tabs">
+        <a href="{{ url_for('login', next=next) if next else url_for('login') }}" class="auth-tab{% if mode == 'login' %} active{% endif %}">Login</a>
+        <a href="{{ url_for('register') }}" class="auth-tab{% if mode == 'register' %} active{% endif %}">Create Account</a>
+      </div>
+
+      {% if mode == 'login' %}
+      <form method="post" action="{{ url_for('login') }}" class="auth-form-container active">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        <input type="hidden" name="next" value="{{ next }}">
+        <p class="auth-hint">Sign in to save your itineraries in the local SQL database.</p>
+        <div class="form-group">
+          <label for="login-username"><i class="fa-solid fa-user"></i> Username</label>
+          <div class="input-with-icon">
+            <i class="fa-solid fa-user input-icon"></i>
+            <input type="text" id="login-username" name="username" value="{{ username }}" placeholder="Enter username" required autocomplete="username" autofocus>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="login-password"><i class="fa-solid fa-lock"></i> Password</label>
+          <div class="input-with-icon">
+            <i class="fa-solid fa-key input-icon"></i>
+            <input type="password" id="login-password" name="password" placeholder="Enter password" required autocomplete="current-password">
+          </div>
+        </div>
+        {% if error %}
+        <div class="auth-error-msg"><i class="fa-solid fa-circle-exclamation"></i><span>{{ error }}</span></div>
+        {% endif %}
+        <button type="submit" class="primary-button btn-large">Login</button>
+      </form>
+      {% else %}
+      <form method="post" action="{{ url_for('register') }}" class="auth-form-container active">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        <p class="auth-hint">Create an account to manage your plans securely.</p>
+        <div class="form-group">
+          <label for="register-name"><i class="fa-solid fa-user-tag"></i> Full Name</label>
+          <div class="input-with-icon">
+            <i class="fa-solid fa-id-card input-icon"></i>
+            <input type="text" id="register-name" name="name" value="{{ name }}" placeholder="e.g. John Doe" required autocomplete="name" autofocus>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="register-username"><i class="fa-solid fa-user"></i> Choose Username</label>
+          <div class="input-with-icon">
+            <i class="fa-solid fa-user input-icon"></i>
+            <input type="text" id="register-username" name="username" value="{{ username }}" placeholder="e.g. johndoe" required autocomplete="username">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="register-password"><i class="fa-solid fa-lock"></i> Password</label>
+          <div class="input-with-icon">
+            <i class="fa-solid fa-key input-icon"></i>
+            <input type="password" id="register-password" name="password" placeholder="Choose a password" required autocomplete="new-password">
+          </div>
+        </div>
+        {% if error %}
+        <div class="auth-error-msg"><i class="fa-solid fa-circle-exclamation"></i><span>{{ error }}</span></div>
+        {% endif %}
+        <button type="submit" class="primary-button btn-large">Register</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

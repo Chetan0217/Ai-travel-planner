@@ -1,0 +1,67 @@
+{% extends "index.html" %}
+{% block title %}My Trips | VoyageAI{% endblock %}
+{% block modals %}
+<div class="modal active">
+  <div class="modal-content glass-panel animated scaleUp modal-wide">
+    <div class="modal-header">
+      <h3><i class="fa-solid fa-bookmark"></i> My Saved Itineraries</h3>
+      <a href="{{ url_for('index') }}" class="icon-button close-btn" title="Close"><i class="fa-solid fa-xmark"></i></a>
+    </div>
+    <div class="modal-body">
+      <p class="trips-hint">Open a saved adventure, or delete it from the SQL database.</p>
+
+      <form method="get" action="{{ url_for('trips') }}" class="trips-search-filter-bar">
+        <div class="form-group modal-search-group">
+          <div class="input-with-icon">
+            <i class="fa-solid fa-magnifying-glass input-icon"></i>
+            <input type="text" name="q" value="{{ q }}" class="modal-search-input" placeholder="Search by destination...">
+          </div>
+        </div>
+        <div class="modal-filter-group">
+          <span class="modal-filter-label">Budget:</span>
+          <div class="chips-selector modal-budget-filter">
+            {% for value, icon in [('All', ''), ('Budget', 'fa-coins'), ('Standard', 'fa-credit-card'), ('Luxury', 'fa-crown')] %}
+            <label class="chip">
+              <input type="radio" name="budget" value="{{ value }}"{% if value == budget %} checked{% endif %}>
+              {% if icon %}<i class="fa-solid {{ icon }}"></i>{% endif %} {{ value }}
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+        <button type="submit" class="secondary-button">Filter</button>
+      </form>
+
+      <div class="trips-list-container">
+        {% for trip in trips %}
+        <div class="trip-list-item">
+          <div class="trip-info">
+            <span class="trip-destination">{{ trip.destination }}</span>
+            <div class="trip-meta">
+              <span class="trip-tag">{{ trip.duration }} Day(s)</span>
+              <span class="trip-tag budget-tag">{{ trip.budget }}</span>
+              <span class="trip-tag style-tag">{{ trip.style }}</span>
+            </div>
+            <span class="trip-date"><i class="fa-regular fa-clock"></i> Saved: {{ trip.created_at }}</span>
+          </div>
+          <div class="trip-actions">
+            <a class="primary-button" href="{{ url_for('show_trip', trip_id=trip.id) }}">Open</a>
+            <details class="delete-confirm">
+              <summary class="secondary-button danger-text" title="Delete"><i class="fa-regular fa-trash-can"></i></summary>
+              <form method="post" action="{{ url_for('delete_trip', trip_id=trip.id) }}">
+                <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+                <button type="submit" class="danger-button">Yes, delete</button>
+              </form>
+            </details>
+          </div>
+        </div>
+        {% else %}
+        <div class="trips-empty-state">
+          <i class="fa-solid fa-map-location-dot"></i>
+          <p>{{ 'No matching saved trips found.' if (q or budget != 'All') else 'No saved trips yet. Create a plan and save it to see it here!' }}</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
