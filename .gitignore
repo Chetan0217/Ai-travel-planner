@@ -1,0 +1,20 @@
+# Secrets (keep .env.example tracked)
+.env
+!.env.example
+
+# Local database
+*.db
+*.sqlite3
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+env/
+
+# Editors / OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
