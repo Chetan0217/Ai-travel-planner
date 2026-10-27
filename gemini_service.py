@@ -1,0 +1,148 @@
+"""Server-side Gemini client. The API key stays on the server and never reaches the browser."""
+import json
+import os
+
+import requests
+
+MODEL = 'gemini-2.5-flash'
+API_URL = f'https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent'
+TIMEOUT_SECONDS = 90
+
+
+class GeminiError(Exception):
+    """Raised with a message that is safe to show to the user."""
+
+
+def get_api_key():
+    return (os.environ.get('GEMINI_API_KEY') or '').strip()
+
+
+def has_api_key():
+    return bool(get_api_key())
+
+
+def build_prompt(location, duration, budget, style):
+    return f'''Create a highly detailed, premium, realistic travel plan for: "{location}".
+Trip parameters:
+- Duration: {duration} day(s).
+- Budget: {budget} (Budget, Standard, or Luxury).
+- Travel Style: {style} (e.g. Culture, Adventure, Relaxation, Foodie, Urban & Landmarks).
+
+Please make sure:
+1. The description is compelling and welcoming.
+2. The hotels match the budget category:
+   - Budget: Cheap, clean, hostels or guesthouses.
+   - Standard: Mid-range, highly rated, modern boutique hotels.
+   - Luxury: Top-tier 5-star hotels, palaces, or luxury resorts.
+3. The itinerary has a logical flow for each day, with a morning slot, a midday slot, and an evening slot.
+4. Nearby scenic spots should include at least 4-5 major tourist attractions, viewpoints, or historical sites.
+5. Provide a sequence of realistic routes between key points with estimated transit times and transportation modes.
+6. If the travel style is "Adventure", explicitly include treks, hikes, visits to scenic waterfalls, and highlight the specific "base villages" where these journeys start. Detail these treks in the "treks" array with name, difficulty (e.g. Easy, Moderate, Challenging), duration, base_village, and description.
+7. If the travel style is NOT "Adventure", return an empty array for "treks".
+8. Provide realistic geographic latitude and longitude coordinates (decimal numbers) for each hotel, attraction, and schedule stop. Ensure these coordinates match the actual real-world location (e.g., Amer Fort is around 26.9855, 75.8513).
+9. Provide a high-resolution, specific Unsplash landscape photo URL for the 'hero_image' field that shows an iconic landmark of the destination city (e.g., 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?auto=format&fit=crop&w=1200&q=80' for Nepal, etc.).
+10. For each hotel, spot (attraction), and daily schedule event, provide a specific, high-resolution Unsplash photo URL inside the 'image' field that shows that actual landmark/accommodation. Crucially, generate a distinct and unique Unsplash photo ID for every different place (do NOT use the same general image for multiple items). For example:
+    - Chinese Fishing Nets Kochi: 'https://images.unsplash.com/photo-1589308078059-be1415eab4c3?auto=format&fit=crop&w=600&q=80'
+    - St. Francis Church Kochi: 'https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=600&q=80'
+    - Backwaters / Alleppey: 'https://images.unsplash.com/photo-1593693397690-362cb9666fc2?auto=format&fit=crop&w=600&q=80'
+    - Paradesi Synagogue / Jew Town: 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=600&q=80'
+    - General hotel/resort in Kerala: 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=600&q=80'
+11. Return structured data exactly conforming to the JSON schema.'''
+
+
+def _obj(properties, required):
+    return {'type': 'OBJECT', 'properties': properties, 'required': required}
+
+
+_S = {'type': 'STRING'}
+_I = {'type': 'INTEGER'}
+_N = {'type': 'NUMBER'}
+
+PLAN_SCHEMA = _obj(
+    {
+        'destination': _S,
+        'hero_image': _S,
+        'description': _S,
+        'duration': _I,
+        'budget': _S,
+        'style': _S,
+        'overview': _obj(
+            {'daily_cost': _S, 'weather': _S, 'tips': _S},
+            ['daily_cost', 'weather', 'tips'],
+        ),
+        'hotels': {'type': 'ARRAY', 'items': _obj(
+            {'name': _S, 'price': _S, 'rating': _S, 'address': _S, 'highlight': _S,
+             'latitude': _N, 'longitude': _N, 'image': _S},
+            ['name', 'price', 'rating', 'address', 'highlight', 'latitude', 'longitude', 'image'],
+        )},
+        'spots': {'type': 'ARRAY', 'items': _obj(
+            {'name': _S, 'category': _S, 'rating': _S, 'highlight': _S,
+             'latitude': _N, 'longitude': _N, 'image': _S},
+            ['name', 'category', 'rating', 'highlight', 'latitude', 'longitude', 'image'],
+        )},
+        'itinerary': {'type': 'ARRAY', 'items': _obj(
+            {
+                'day': _I,
+                'schedule': {'type': 'ARRAY', 'items': _obj(
+                    {'time': _S, 'spot': _S, 'activity': _S, 'cost': _S, 'duration': _S,
+                     'transport': _S, 'latitude': _N, 'longitude': _N, 'image': _S},
+                    ['time', 'spot', 'activity', 'cost', 'duration', 'transport',
+                     'latitude', 'longitude', 'image'],
+                )},
+            },
+            ['day', 'schedule'],
+        )},
+        'routes': {'type': 'ARRAY', 'items': _obj(
+            {'from': _S, 'to': _S, 'duration': _S, 'distance': _S,
+             'modes': {'type': 'ARRAY', 'items': _S}},
+            ['from', 'to', 'duration', 'distance', 'modes'],
+        )},
+        'treks': {'type': 'ARRAY', 'items': _obj(
+            {'name': _S, 'difficulty': _S, 'duration': _S, 'base_village': _S, 'description': _S},
+            ['name', 'difficulty', 'duration', 'description'],
+        )},
+    },
+    ['destination', 'hero_image', 'description', 'duration', 'budget', 'style',
+     'overview', 'hotels', 'spots', 'itinerary', 'routes', 'treks'],
+)
+
+
+def generate_plan(location, duration, budget, style):
+    api_key = get_api_key()
+    if not api_key:
+        raise GeminiError('Gemini API key is not configured on the server.')
+
+    body = {
+        'contents': [{'parts': [{'text': build_prompt(location, duration, budget, style)}]}],
+        'generationConfig': {
+            'responseMimeType': 'application/json',
+            'responseSchema': PLAN_SCHEMA,
+        },
+    }
+
+    try:
+        response = requests.post(
+            API_URL,
+            json=body,
+            headers={'Content-Type': 'application/json', 'x-goog-api-key': api_key},
+            timeout=TIMEOUT_SECONDS,
+        )
+    except requests.RequestException:
+        raise GeminiError('Could not reach the Gemini API. Please try again.')
+
+    if not response.ok:
+        message = 'Failed to communicate with Gemini API.'
+        try:
+            err = response.json().get('error') or {}
+            if err.get('message'):
+                message = err['message']
+        except (ValueError, AttributeError):
+            pass
+        raise GeminiError(message)
+
+    try:
+        data = response.json()
+        text = data['candidates'][0]['content']['parts'][0]['text']
+        return json.loads(text)
+    except (ValueError, KeyError, IndexError, TypeError):
+        raise GeminiError('The AI returned a malformed itinerary. Please try again.')

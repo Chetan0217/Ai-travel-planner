@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Travel Planner | Curate Your Perfect Adventure</title>
+  <meta name="description" content="AI-powered travel planner that generates custom itineraries, hotel matches, and optimal routes for your next destination.">
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Leaflet.js Maps API -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <!-- Custom Styling -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  
+  <!-- Navigation Header -->
+  <header class="app-header">
+    <div class="logo">
+      <i class="fa-solid fa-compass-drafting logo-icon"></i>
+      <span>Voyage<span class="gradient-text">AI</span></span>
+    </div>
+    <div class="header-actions">
+      <button id="btn-api-settings" class="icon-button" title="API Settings">
+        <i class="fa-solid fa-key"></i>
+        <span>API Key</span>
+      </button>
+      <div id="auth-controls" class="auth-controls">
+        <button id="btn-login-trigger" class="secondary-button header-auth-btn">
+          <i class="fa-solid fa-user-lock"></i>
+          <span>Login / Register</span>
+        </button>
+        <div id="user-profile-menu" class="user-profile-menu" style="display: none;">
+          <span class="user-welcome">Hi, <span id="user-display-name">Explorer</span>!</span>
+          <button id="btn-my-trips-trigger" class="icon-button" title="My Saved Trips">
+            <i class="fa-solid fa-bookmark"></i>
+            <span>My Trips</span>
+          </button>
+          <button id="btn-logout" class="icon-button danger-text" title="Logout">
+            <i class="fa-solid fa-right-from-bracket"></i>
+            <span>Logout</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="app-container">
+    
+    <!-- 1. TRIP PLANNER SETUP SCREEN -->
+    <section id="setup-screen" class="setup-screen active">
+      <div class="intro-heading">
+        <h1>Your AI-Powered <span class="gradient-text">Adventure Planner</span></h1>
+        <p class="subtitle">Select your dream location, budget, and travel preferences. Our AI will curate the ultimate itinerary, stays, and travel routes in seconds.</p>
+      </div>
+
+      <div class="setup-card glass-panel">
+        <form id="planner-form" onsubmit="event.preventDefault();">
+          
+          <!-- Destination Field -->
+          <div class="form-group">
+            <label for="destination-input"><i class="fa-solid fa-map-pin"></i> Where do you want to go?</label>
+            <div class="input-with-icon">
+              <i class="fa-solid fa-magnifying-glass input-icon"></i>
+              <input type="text" id="destination-input" placeholder="e.g. Jaipur, Tokyo, Paris, Rome..." autocomplete="off" required>
+            </div>
+            <!-- Autocomplete suggestions -->
+            <div id="autocomplete-list" class="autocomplete-suggestions"></div>
+            <div class="suggestions-hint">
+              <strong>🇮🇳 India:</strong>
+              <span class="preset-tag" data-val="Jaipur">Jaipur</span>,
+              <span class="preset-tag" data-val="Mumbai">Mumbai</span>,
+              <span class="preset-tag" data-val="Delhi">Delhi</span>,
+              <span class="preset-tag" data-val="Goa">Goa</span>,
+              <span class="preset-tag" data-val="Udaipur">Udaipur</span>,
+              <span class="preset-tag" data-val="Manali">Manali</span>,
+              <span class="preset-tag" data-val="Rishikesh">Rishikesh</span>,
+              <span class="preset-tag" data-val="Varanasi">Varanasi</span>,
+              <span class="preset-tag" data-val="Amritsar">Amritsar</span>,
+              <span class="preset-tag" data-val="Leh">Leh</span>,
+              <span class="preset-tag" data-val="Jodhpur">Jodhpur</span>,
+              <span class="preset-tag" data-val="Darjeeling">Darjeeling</span>,
+              <span class="preset-tag" data-val="Mysuru">Mysuru</span>,
+              <span class="preset-tag" data-val="Agra">Agra</span>,
+              <span class="preset-tag" data-val="Kochi">Kochi</span>,
+              <span class="preset-tag" data-val="Hampi">Hampi</span>
+              <br>
+              <strong>🌏 Asia &amp; Middle East:</strong>
+              <span class="preset-tag" data-val="Bali">Bali</span>,
+              <span class="preset-tag" data-val="Bangkok">Bangkok</span>,
+              <span class="preset-tag" data-val="Singapore">Singapore</span>,
+              <span class="preset-tag" data-val="Seoul">Seoul</span>,
+              <span class="preset-tag" data-val="Dubai">Dubai</span>,
+              <span class="preset-tag" data-val="Tokyo">Tokyo</span>,
+              <span class="preset-tag" data-val="Kyoto">Kyoto</span>
+              <br>
+              <strong>🇪🇺 Europe:</strong>
+              <span class="preset-tag" data-val="Paris">Paris</span>,
+              <span class="preset-tag" data-val="Barcelona">Barcelona</span>,
+              <span class="preset-tag" data-val="London">London</span>,
+              <span class="preset-tag" data-val="Amsterdam">Amsterdam</span>,
+              <span class="preset-tag" data-val="Istanbul">Istanbul</span>,
+              <span class="preset-tag" data-val="Prague">Prague</span>,
+              <span class="preset-tag" data-val="Rome">Rome</span>,
+              <span class="preset-tag" data-val="Florence">Florence</span>
+              <br>
+              <strong>🌎 Americas:</strong>
+              <span class="preset-tag" data-val="New York">New York</span>,
+              <span class="preset-tag" data-val="Rio de Janeiro">Rio de Janeiro</span>,
+              <span class="preset-tag" data-val="Cusco">Cusco</span>
+            </div>
+
+          </div>
+
+          <div class="form-grid">
+            <!-- Duration -->
+            <div class="form-group">
+              <label for="duration-select"><i class="fa-solid fa-calendar-days"></i> Trip Duration</label>
+              <select id="duration-select">
+                <option value="1">1 Day Express</option>
+                <option value="2">2 Days Weekend</option>
+                <option value="3" selected>3 Days Standard</option>
+                <option value="4">4 Days Standard</option>
+                <option value="5">5 Days Extended</option>
+                <option value="7">7 Days Week-long</option>
+              </select>
+            </div>
+
+            <!-- Budget Selection -->
+            <div class="form-group">
+              <label><i class="fa-solid fa-wallet"></i> Budget Class</label>
+              <div class="chips-selector" id="budget-selector">
+                <div class="chip" data-value="Budget">
+                  <i class="fa-solid fa-coins"></i>
+                  <span>Budget</span>
+                </div>
+                <div class="chip active" data-value="Standard">
+                  <i class="fa-solid fa-credit-card"></i>
+                  <span>Standard</span>
+                </div>
+                <div class="chip" data-value="Luxury">
+                  <i class="fa-solid fa-crown"></i>
+                  <span>Luxury</span>
+                </div>
+                <div class="chip" data-value="Custom">
+                  <i class="fa-solid fa-sliders"></i>
+                  <span>Custom</span>
+                </div>
+              </div>
+              
+              <!-- Custom Budget Input (Initially hidden) -->
+              <div id="custom-budget-input-container" class="input-with-icon" style="margin-top: 12px; display: none;">
+                <i class="fa-solid fa-hand-holding-dollar input-icon" style="color: var(--secondary);"></i>
+                <input type="text" id="custom-budget-val" placeholder="e.g. $150/day, ₹20,000 total, etc.">
+              </div>
+            </div>
+          </div>
+
+          <!-- Travel Style Selection -->
+          <div class="form-group">
+            <label><i class="fa-solid fa-wand-magic-sparkles"></i> Travel Style</label>
+            <div class="chips-selector wrap" id="style-selector">
+              <div class="chip active" data-value="Culture">
+                <i class="fa-solid fa-landmark"></i>
+                <span>Culture & Heritage</span>
+              </div>
+              <div class="chip" data-value="Adventure">
+                <i class="fa-solid fa-mountain-sun"></i>
+                <span>Adventure & Nature</span>
+              </div>
+              <div class="chip" data-value="Relaxation">
+                <i class="fa-solid fa-spa"></i>
+                <span>Relaxation</span>
+              </div>
+              <div class="chip" data-value="Foodie">
+                <i class="fa-solid fa-utensils"></i>
+                <span>Food & Culinary</span>
+              </div>
+              <div class="chip" data-value="Urban & Landmarks">
+                <i class="fa-solid fa-building"></i>
+                <span>Urban Explorer</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Companion Type Selection -->
+          <div class="form-group">
+            <label><i class="fa-solid fa-users"></i> Companion</label>
+            <div class="chips-selector wrap" id="companion-selector">
+              <div class="chip active" data-value="Solo">
+                <i class="fa-solid fa-user"></i>
+                <span>Solo Traveller</span>
+              </div>
+              <div class="chip" data-value="Couple">
+                <i class="fa-solid fa-heart"></i>
+                <span>Couple</span>
+              </div>
+              <div class="chip" data-value="Friends">
+                <i class="fa-solid fa-user-group"></i>
+                <span>Friends</span>
+              </div>
+              <div class="chip" data-value="Family">
+                <i class="fa-solid fa-people-roof"></i>
+                <span>Family</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Action Button -->
+          <button type="submit" id="btn-generate" class="primary-button btn-large">
+            <span>Generate Itinerary</span>
+            <i class="fa-solid fa-compass fa-spin-hover"></i>
+          </button>
+
+        </form>
+      </div>
+    </section>
+
+    <!-- 2. AI GENERATION / LOADING SCREEN -->
+    <section id="loading-screen" class="loading-screen">
+      <div class="loading-container">
+        <div class="radar-spinner">
+          <div class="circle"></div>
+          <div class="circle"></div>
+          <div class="circle"></div>
+          <i class="fa-solid fa-earth-americas spinning-globe"></i>
+        </div>
+        <h2 id="loading-title">Drafting your adventure...</h2>
+        <div class="progress-bar-container">
+          <div class="progress-bar" id="loading-progress"></div>
+        </div>
+        <p id="loading-status" class="loading-status-text">Fetching map coordinates...</p>
+      </div>
+    </section>
+
+    <!-- 3. PLANNER DASHBOARD SCREEN -->
+    <section id="dashboard-screen" class="dashboard-screen">
+      
+      <!-- Dashboard Top Controls -->
+      <div class="dashboard-nav">
+        <button id="btn-back-setup" class="text-button">
+          <i class="fa-solid fa-arrow-left"></i>
+          <span>Plan Another Trip</span>
+        </button>
+        <div class="nav-right">
+          <button id="btn-save-trip" class="secondary-button" title="Save Trip to Database">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+            <span>Save Trip</span>
+          </button>
+          <div class="mode-badge" id="source-badge">
+            <i class="fa-solid fa-circle-check"></i>
+            <span>Pre-Loaded Demo</span>
+          </div>
+          <button id="btn-print" class="secondary-button icon-only" title="Print / Export PDF">
+            <i class="fa-solid fa-print"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Hero Card Banner -->
+      <div class="dashboard-hero glass-panel">
+        <div class="hero-content">
+          <div class="hero-labels">
+            <span class="hero-badge" id="hero-style-badge">Culture</span>
+            <span class="hero-badge" id="hero-budget-badge">Standard Budget</span>
+          </div>
+          <h2 id="hero-destination-name">Destination Title</h2>
+          <p id="hero-description">Destination detailed bio and welcoming information created by VoyageAI.</p>
+          
+          <div class="hero-stats">
+            <div class="stat-card">
+              <i class="fa-solid fa-cloud-sun icon-blue"></i>
+              <div>
+                <span class="stat-value" id="stat-weather">24°C, Sunny</span>
+                <span class="stat-label">Local Weather</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <i class="fa-solid fa-receipt icon-green"></i>
+              <div>
+                <span class="stat-value" id="stat-cost">Standard</span>
+                <span class="stat-label">Daily Average Cost</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <i class="fa-solid fa-calendar-check icon-violet"></i>
+              <div>
+                <span class="stat-value" id="stat-days">3 Days</span>
+                <span class="stat-label">Duration</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Layout Grid -->
+      <div class="dashboard-grid">
+        
+        <!-- Left Panel: Itinerary and Timeline -->
+        <div class="grid-left-panel">
+          <div class="timeline-container glass-panel">
+            <div class="timeline-header">
+              <h3><i class="fa-solid fa-route"></i> Daily Itinerary</h3>
+              <!-- Day Tabs Selector -->
+              <div class="day-tabs" id="day-tabs-container">
+                <!-- Day buttons populated dynamically -->
+              </div>
+            </div>
+
+            <!-- Dynamic Itinerary Timeline -->
+            <div class="itinerary-timeline" id="timeline-events">
+              <!-- Timeline items populated dynamically -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Panel: Hotels, Spots, Routes -->
+        <div class="grid-right-panel">
+          
+          <!-- Stays / Hotel Panel -->
+          <div class="side-panel glass-panel">
+            <div class="panel-header">
+              <h4><i class="fa-solid fa-hotel"></i> Stays matching budget</h4>
+            </div>
+            <div class="card-list" id="hotel-list">
+              <!-- Hotels populated dynamically -->
+            </div>
+          </div>
+
+          <!-- Scenic Spots / POIs -->
+          <div class="side-panel glass-panel">
+            <div class="panel-header">
+              <h4><i class="fa-solid fa-camera-retro"></i> Scenic Spots & Attractions</h4>
+            </div>
+            <div class="spots-tags-container" id="spots-list">
+              <!-- Spots populated dynamically -->
+            </div>
+          </div>
+
+          <!-- Interactive Simulated Map Route -->
+          <div class="side-panel glass-panel">
+            <div class="panel-header">
+              <h4><i class="fa-solid fa-map-location-dot"></i> Recommended Transit Route</h4>
+            </div>
+            
+            <div class="map-container" style="padding: 0; overflow: hidden; border-radius: var(--border-radius-sm);">
+              <!-- Leaflet Map Container -->
+              <div id="route-map" style="height: 100%; width: 100%; min-height: 240px; z-index: 10;"></div>
+            </div>
+
+            <div class="route-details-list" id="route-details">
+              <!-- Route links populated dynamically -->
+            </div>
+          </div>
+
+          <!-- AI Tips Panel -->
+          <div class="tips-panel text-card">
+            <h5><i class="fa-solid fa-lightbulb text-yellow"></i> AI Travel Tips</h5>
+            <p id="travel-tips-text">Carry local currency and purchase a transit card to travel seamlessly.</p>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- SETTINGS MODAL (Gemini API Key Setup) -->
+  <div id="settings-modal" class="modal">
+    <div class="modal-content glass-panel animated scaleUp">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-gears"></i> API Settings</h3>
+        <button id="btn-close-settings" class="icon-button close-btn"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <p>Live itineraries are generated by the Python server using its own <strong>Gemini API key</strong>. The key stays on the server and never reaches your browser.</p>
+        <p class="field-hint">To enable live AI planning, set <code>GEMINI_API_KEY</code> in the server environment (or in a <code>.env</code> file next to <code>server.py</code>) and restart <code>server.py</code>. You can get a free key from <a href="https://aistudio.google.com/" target="_blank" rel="noopener">Google AI Studio</a>.</p>
+
+        <div class="api-key-status" id="api-key-status">
+          <i class="fa-solid fa-circle-question"></i>
+          <span>No API key loaded. Using simulated data mode.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AUTHENTICATION (LOGIN / REGISTER) MODAL -->
+  <div id="auth-modal" class="modal">
+    <div class="modal-content glass-panel animated scaleUp">
+      <div class="modal-header">
+        <h3 id="auth-modal-title"><i class="fa-solid fa-user-lock"></i> Welcome Explorer</h3>
+        <button id="btn-close-auth" class="icon-button close-btn"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div id="file-protocol-warning" class="auth-error-msg" style="display: none; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); color: #f59e0b; margin-bottom: 16px;">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <span>Running from local file. Open <a href="http://127.0.0.1:5000" style="color: #f59e0b; text-decoration: underline; font-weight: 600;">http://127.0.0.1:5000</a> to register.</span>
+        </div>
+        <div class="auth-tabs">
+          <button id="tab-login" class="auth-tab active">Login</button>
+          <button id="tab-register" class="auth-tab">Create Account</button>
+        </div>
+        
+        <!-- Login Form -->
+        <form id="login-form" class="auth-form-container active" onsubmit="event.preventDefault();">
+          <p class="auth-hint">Sign in to save your itineraries in a local SQL database on your PC.</p>
+          <div class="form-group">
+            <label for="login-username"><i class="fa-solid fa-user"></i> Username</label>
+            <div class="input-with-icon">
+              <i class="fa-solid fa-user input-icon"></i>
+              <input type="text" id="login-username" placeholder="Enter username" required autocomplete="username">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="login-password"><i class="fa-solid fa-lock"></i> Password</label>
+            <div class="input-with-icon">
+              <i class="fa-solid fa-key input-icon"></i>
+              <input type="password" id="login-password" placeholder="Enter password" required autocomplete="current-password">
+            </div>
+          </div>
+          <div id="login-error-message" class="auth-error-msg" style="display: none;">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <span>Invalid credentials</span>
+          </div>
+          <button type="submit" class="primary-button btn-large">Login</button>
+        </form>
+        
+        <!-- Register Form -->
+        <form id="register-form" class="auth-form-container" onsubmit="event.preventDefault();">
+          <p class="auth-hint">Create an account to manage your plans securely.</p>
+          <div class="form-group">
+            <label for="register-name"><i class="fa-solid fa-user-tag"></i> Full Name</label>
+            <div class="input-with-icon">
+              <i class="fa-solid fa-id-card input-icon"></i>
+              <input type="text" id="register-name" placeholder="e.g. John Doe" required autocomplete="name">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="register-username"><i class="fa-solid fa-user"></i> Choose Username</label>
+            <div class="input-with-icon">
+              <i class="fa-solid fa-user input-icon"></i>
+              <input type="text" id="register-username" placeholder="e.g. johndoe" required autocomplete="username">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="register-password"><i class="fa-solid fa-lock"></i> Password</label>
+            <div class="input-with-icon">
+              <i class="fa-solid fa-key input-icon"></i>
+              <input type="password" id="register-password" placeholder="Choose a password" required autocomplete="new-password">
+            </div>
+          </div>
+          <div id="register-error-message" class="auth-error-msg" style="display: none;">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <span>Could not register user</span>
+          </div>
+          <div id="register-success-message" class="auth-success-msg" style="display: none;">
+            <i class="fa-solid fa-circle-check"></i>
+            <span>Registration successful! You can now log in.</span>
+          </div>
+          <button type="submit" class="primary-button btn-large">Register</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- SAVED TRIPS MODAL -->
+  <div id="trips-modal" class="modal">
+    <div class="modal-content glass-panel animated scaleUp modal-wide">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-bookmark"></i> My Saved Itineraries</h3>
+        <button id="btn-close-trips" class="icon-button close-btn"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <p class="trips-hint">Select a saved adventure to load it, or delete it from the SQL database.</p>
+        
+        <!-- Search & Filter Controls -->
+        <div class="trips-search-filter-bar">
+          <div class="form-group modal-search-group">
+            <div class="input-with-icon">
+              <i class="fa-solid fa-magnifying-glass input-icon"></i>
+              <input type="text" id="modal-search-input" class="modal-search-input" placeholder="Search by destination...">
+            </div>
+          </div>
+          <div class="modal-filter-group">
+            <span class="modal-filter-label">Budget:</span>
+            <div class="chips-selector modal-budget-filter" id="modal-budget-filter">
+              <div class="chip active" data-filter="All">All</div>
+              <div class="chip" data-filter="Budget"><i class="fa-solid fa-coins"></i> Budget</div>
+              <div class="chip" data-filter="Standard"><i class="fa-solid fa-credit-card"></i> Standard</div>
+              <div class="chip" data-filter="Luxury"><i class="fa-solid fa-crown"></i> Luxury</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="trips-list-container" class="trips-list-container">
+          <div class="trips-empty-state">
+            <i class="fa-solid fa-map-location-dot"></i>
+            <p>No saved trips found. Create a plan and save it to see it here!</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="app-footer">
+    <p>© 2026 VoyageAI Planner. Built with Gemini AI.</p>
+  </footer>
+
+  <!-- App Core Logic Scripts -->
+  <script src="mock-data.js?v=8"></script>
+  <script src="gemini-api.js?v=8"></script>
+  <script src="app.js?v=8"></script>
+</body>
+</html>
