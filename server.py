@@ -167,6 +167,7 @@ def _store_plan(plan_id, status, source=None, plan=None, error=None):
 def _generate_in_background(plan_id, destination, duration, budget, style):
     try:
         plan = gemini_service.generate_plan(destination, duration, budget, style)
+        planner.drop_broken_images(plan)
         _store_plan(plan_id, 'done', 'ai', plan)
     except GeminiError as e:
         template = planner.find_demo_template(destination)
