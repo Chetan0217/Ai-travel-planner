@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+{% block title %}{{ plan.destination }} | VoyageAI{% endblock %}
+{% block body_attrs %} style="--body-bg-image: url('{{ hero_image }}')"{% endblock %}
+{% block content %}
+{% set base_url = url_for('show_trip', trip_id=trip_id) if trip_id else url_for('show_plan', plan_id=plan_id) %}
+<section class="dashboard-screen active">
+
+  <div class="dashboard-nav">
+    <a href="{{ url_for('index') }}" class="text-button">
+      <i class="fa-solid fa-arrow-left"></i>
+      <span>Plan Another Trip</span>
+    </a>
+    <div class="nav-right">
+      {% if plan_id %}
+      <form method="post" action="{{ url_for('save_plan', plan_id=plan_id) }}" class="inline-form">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        <button type="submit" class="secondary-button" title="Save Trip to Database">
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+          <span>{{ 'Save Trip' if user else 'Log in to Save' }}</span>
+        </button>
+      </form>
+      {% endif %}
+      {% set badges = {'ai': ('AI Live Generated', ''), 'demo': ('Pre-Loaded Demo', ''),
+                       'fallback': ('Offline Fallback', ' warning-badge'), 'saved': ('Saved Trip', '')} %}
+      {% set badge = badges.get(source, ('Plan', '')) %}
+      <div class="mode-badge{{ badge[1] }}">
+        <i class="fa-solid {{ 'fa-triangle-exclamation' if source == 'fallback' else 'fa-circle-check' }}"></i>
+        <span>{{ badge[0] }}</span>
+      </div>
+    </div>
+  </div>
+
+  {% if notice %}
+  <div class="plan-notice"><i class="fa-solid fa-triangle-exclamation"></i> {{ notice }}</div>
+  {% endif %}
+
+  <div class="dashboard-hero glass-panel" style="background-image: url('{{ hero_image }}')">
+    <div class="hero-content">
+      <div class="hero-labels">
+        <span class="hero-badge">{{ plan.style }}</span>
+        <span class="hero-badge">{{ plan.budget }} Budget</span>
+      </div>
+      <h2>{{ plan.destination }}</h2>
+      <p>{{ plan.description }}</p>
+      <div class="hero-stats">
+        <div class="stat-card">
+          <i class="fa-solid fa-cloud-sun icon-blue"></i>
+          <div>
+            <span class="stat-value">{{ plan.overview.weather }}</span>
+            <span class="stat-label">Local Weather</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <i class="fa-solid fa-receipt icon-green"></i>
+          <div>
+            <span class="stat-value">{{ plan.overview.daily_cost }}</span>
+            <span class="stat-label">Daily Average Cost</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <i class="fa-solid fa-calendar-check icon-violet"></i>
+          <div>
+            <span class="stat-value">{{ plan.duration }} Day(s)</span>
+            <span class="stat-label">Duration</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dashboard-grid">
+
+    <div class="grid-left-panel">
+      <div class="timeline-container glass-panel">
+        <div class="timeline-header">
+          <h3><i class="fa-solid fa-route"></i> Daily Itinerary</h3>
+          <div class="day-tabs">
+            {% for d in plan.itinerary %}
+            <a class="day-tab-btn{% if loop.index == day %} active{% endif %}" href="{{ base_url }}?day={{ loop.index }}">Day {{ loop.index }}</a>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="itinerary-timeline">
+          {% for item in stops %}
+          {% set s = item.stop %}
+          {% set d = item.details %}
+          {% if not loop.first and s.transport %}
+          <div class="transport-divider">
+            <i class="fa-solid fa-arrows-left-right-to-line"></i>
+            <span class="transport-line"></span>
+            <span>{{ s.transport }}</span>
+            <span class="transport-line"></span>
+          </div>
+          {% endif %}
+          <div class="timeline-item">
+            <div class="timeline-card">
+              <div class="timeline-card-image-wrap">
+                <img class="timeline-card-image" src="{{ valid_image(s.image, s.spot) }}" alt="{{ s.spot }}" loading="lazy">
+              </div>
+              <div class="timeline-card-content">
+                <div class="timeline-meta">
+                  <span class="time-slot">{{ s.time }}</span>
+                  <span class="spot-cost">Cost: {{ s.cost }}</span>
+                </div>
+                <h4>{{ s.spot }}</h4>
+                {% if d %}
+                <div class="spot-extra-info">
+                  {% if d.category %}<span class="spot-category-label">{{ d.category }}</span>{% endif %}
+                  {% if d.rating %}<span class="spot-rating-label"><i class="fa-solid fa-star"></i> {{ d.rating }} Rating</span>{% endif %}
+                </div>
+                {% if d.highlight %}<p class="spot-extra-highlight">"{{ d.highlight }}"</p>{% endif %}
+                {% endif %}
+                <p>{{ s.activity }}</p>
+                <div class="card-metrics">
+                  <span><i class="fa-regular fa-clock"></i> Duration: {{ s.duration }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% else %}
+          <p class="trips-hint">No schedule for this day.</p>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-right-panel">
+
+      <div class="side-panel glass-panel">
+        <div class="panel-header">
+          <h4><i class="fa-solid fa-hotel"></i> Stays matching budget</h4>
+        </div>
+        <div class="card-list">
+          {% for hotel in plan.hotels %}
+          <div class="hotel-item">
+            <div class="hotel-card-image-wrap">
+              <img class="hotel-card-image" src="{{ valid_image(hotel.image, hotel.name ~ ' ' ~ (hotel.address or 'hotel')) }}" alt="{{ hotel.name }}" loading="lazy">
+            </div>
+            <div class="hotel-card-info-wrap">
+              <div class="hotel-meta">
+                <span class="hotel-name">{{ hotel.name }}</span>
+                <span class="hotel-price">{{ hotel.price }}</span>
+              </div>
+              <div class="hotel-rating"><i class="fa-solid fa-star"></i> {{ hotel.rating }} Rating</div>
+              <div class="hotel-address"><i class="fa-solid fa-map-pin"></i> {{ hotel.address }}</div>
+              <p class="hotel-desc">{{ hotel.highlight }}</p>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="side-panel glass-panel">
+        <div class="panel-header">
+          <h4><i class="fa-solid fa-camera-retro"></i> Scenic Spots & Attractions</h4>
+        </div>
+        <div class="spots-tags-container">
+          {% for spot in plan.spots %}
+          <div class="spot-badge-card">
+            <div class="spot-card-image-wrap">
+              <img class="spot-card-image" src="{{ valid_image(spot.image, spot.name ~ ' ' ~ spot.category) }}" alt="{{ spot.name }}" loading="lazy">
+            </div>
+            <div class="spot-card-info-wrap">
+              <div class="spot-badge-info">
+                <span class="spot-badge-name">{{ spot.name }}</span>
+                <span class="spot-badge-desc">{{ spot.highlight }}</span>
+              </div>
+              <div class="spot-badge-meta">
+                <span class="spot-category-label">{{ spot.category }}</span>
+                <span class="spot-rating-label"><i class="fa-solid fa-star"></i> {{ spot.rating }}</span>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      {% if plan.treks %}
+      <div class="side-panel glass-panel">
+        <div class="panel-header">
+          <h4><i class="fa-solid fa-person-hiking"></i> Treks & Trails</h4>
+        </div>
+        <div class="route-details-list">
+          {% for trek in plan.treks %}
+          <div class="route-step">
+            <span class="route-step-text"><strong>{{ trek.name }}</strong> · {{ trek.difficulty }} · {{ trek.duration }}</span>
+            <span class="route-step-modes">
+              {% if trek.base_village %}<i class="fa-solid fa-house-flag"></i> Starts at {{ trek.base_village }}. {% endif %}{{ trek.description }}
+            </span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="side-panel glass-panel">
+        <div class="panel-header">
+          <h4><i class="fa-solid fa-map-location-dot"></i> Day {{ day }} Route</h4>
+        </div>
+        {% if route_map %}
+        <div class="map-container route-svg-wrap">
+          <svg class="route-svg" viewBox="0 0 {{ route_map.width }} {{ route_map.height }}" role="img"
+               aria-label="Route map for day {{ day }}">
+            <polyline points="{{ route_map.polyline }}" class="route-line" />
+            <g class="route-pin hotel-pin">
+              <title>{{ route_map.base.label }}</title>
+              <circle cx="{{ route_map.base.x }}" cy="{{ route_map.base.y }}" r="11" />
+              <text x="{{ route_map.base.x }}" y="{{ route_map.base.y }}">H</text>
+            </g>
+            {% for stop in route_map.stops %}
+            <g class="route-pin">
+              <title>{{ loop.index }}. {{ stop.label }} ({{ stop.time }})</title>
+              <circle cx="{{ stop.x }}" cy="{{ stop.y }}" r="10" />
+              <text x="{{ stop.x }}" y="{{ stop.y }}">{{ loop.index }}</text>
+            </g>
+            {% endfor %}
+          </svg>
+        </div>
+        <a class="map-open-link" href="{{ route_map.google_maps_url }}" target="_blank" rel="noopener">
+          <i class="fa-solid fa-diamond-turn-right"></i> Open this route in Google Maps
+        </a>
+        {% endif %}
+
+        <div class="route-details-list">
+          {% if plan.routes %}
+          {% for route in plan.routes %}
+          <div class="route-step">
+            <span class="route-step-text"><strong>{{ route.from }}</strong> to <strong>{{ route.to }}</strong></span>
+            <span class="route-step-modes">
+              <i class="fa-solid fa-taxi"></i> {{ route.modes | join(' / ') }} ({{ route.duration }}, {{ route.distance }})
+            </span>
+          </div>
+          {% endfor %}
+          {% else %}
+          {% for item in stops[1:] %}
+          <div class="route-step">
+            <span class="route-step-text"><strong>{{ stops[loop.index0].stop.spot }}</strong> to <strong>{{ item.stop.spot }}</strong></span>
+            <span class="route-step-modes"><i class="fa-solid fa-route"></i> {{ item.stop.transport or 'Transit 10 mins' }}</span>
+          </div>
+          {% endfor %}
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="tips-panel text-card">
+        <h5><i class="fa-solid fa-lightbulb text-yellow"></i> AI Travel Tips</h5>
+        <p>{{ plan.overview.tips or 'Purchase local day passes for trains. Stay hydrated during walks.' }}</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+{% endblock %}

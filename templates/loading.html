@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block head_extra %}<meta http-equiv="refresh" content="3">{% endblock %}
+{% block title %}Drafting your adventure... | VoyageAI{% endblock %}
+{% block content %}
+<section class="loading-screen active">
+  <div class="loading-container">
+    <div class="radar-spinner">
+      <div class="circle"></div>
+      <div class="circle"></div>
+      <div class="circle"></div>
+      <i class="fa-solid fa-earth-americas spinning-globe"></i>
+    </div>
+    <h2>{{ title }}</h2>
+    <div class="progress-bar-container">
+      {# The bar fills over ~70s; a negative delay keeps it moving across page refreshes. #}
+      <div class="progress-bar progress-bar-animated" style="animation-delay: -{{ elapsed }}s"></div>
+    </div>
+    <p class="loading-status-text">{{ status }}</p>
+    <p class="loading-status-text">Live AI plans usually take 45–65 seconds. This page refreshes by itself ({{ elapsed }}s so far).</p>
+  </div>
+</section>
+{% endblock %}
