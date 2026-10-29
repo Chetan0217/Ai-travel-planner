@@ -1,48 +1,88 @@
-# VoyageAI Travel Planner
+# VoyageAI: AI Travel Planner
 
-An AI travel planner written in **Python** (Flask + SQLite). Every page is rendered on
-the server with HTML templates, so the app uses **no JavaScript**. Live itineraries come
-from Google Gemini, which the Python server calls. The API key stays on the server.
+Plan a trip to any city in seconds. Pick a destination, trip length, budget and travel style,
+and VoyageAI uses Google Gemini to build a full day-by-day itinerary. Each plan includes hotels
+that fit the budget, the attractions worth seeing, the route between stops and local tips.
 
-## Setup
+Built with **Python and Flask**. Every page is rendered on the server, so the app runs without any JavaScript.
 
-```bash
-pip install -r requirements.txt
+![Trip planner home page](docs/screenshots/home.png)
+
+## Features
+
+- **AI itineraries for any destination.** Gemini returns a structured JSON plan with morning, midday
+  and evening stops, costs, durations and transport between them.
+- **Budget-aware stays.** Pick Budget, Standard or Luxury, or type your own budget (e.g. "₹20,000 total").
+- **Travel styles.** Choose Culture, Adventure (with treks and base villages), Relaxation, Food, or Urban.
+- **Daily route map.** A route map drawn on the server (SVG) shows each day's stops, with a one-click link to open the route in Google Maps.
+- **Accounts and saved trips.** Register, log in, save plans to SQLite, then search, filter and delete them.
+- **Offline demo mode.** 34 pre-loaded cities work without an API key. If the AI is down, the app falls back to them.
+- **Secure by default.**
+  - The API key stays on the server, and passwords are hashed.
+  - Forms are protected against CSRF, and all output is HTML-escaped.
+  - The database and source files are never served to the browser.
+
+![Generated itinerary](docs/screenshots/plan.png)
+
+## Tech stack
+
+| Layer | Technology |
+| --- | --- |
+| Backend | Python 3, Flask |
+| AI | Google Gemini 2.5 Flash (structured JSON output via response schema) |
+| Database | SQLite |
+| Frontend | Jinja2 templates, HTML5, CSS3 (no JavaScript) |
+| Auth | Werkzeug password hashing, Flask sessions, CSRF tokens |
+
+## How it works
+
+```
+Browser form ──POST──▶ Flask /generate
+                         │
+                         ├─ no API key ──▶ demo plan (data/demo_plans.json)
+                         │
+                         └─ background thread ──▶ Gemini API ──▶ check image links ──▶ SQLite
+                                                                                    │
+Browser ◀── "Generating…" page (refreshes itself every 3 s) ◀────────────────────────┘
+        ◀── itinerary page (day tabs, hotels, spots, SVG route map)
 ```
 
-Copy `.env.example` to `.env` and fill it in:
+The Gemini call takes 40 to 60 seconds, so it runs in a background thread. While it runs, a plain HTML
+`<meta refresh>` page polls for the result. That keeps the UI responsive without any client-side code.
 
-- `GEMINI_API_KEY`: your key from https://aistudio.google.com/
-- `FLASK_SECRET_KEY`: any long random string. It keeps logins valid across restarts.
+## Project structure
 
-Never commit `.env`.
+```
+server.py           Flask routes: planner, plans, auth, saved trips
+gemini_service.py   Prompt, JSON response schema and Gemini API client
+planner.py          Demo plans, photo lookup, map coordinates, SVG route data
+data/               Demo city plans and lookup tables (JSON)
+templates/          Jinja2 HTML templates
+static/             Stylesheet and images
+```
 
-## Run
+## Run it locally
+
+```bash
+git clone https://github.com/Chetan0217/Ai-travel-planner.git
+cd Ai-travel-planner
+pip install -r requirements.txt
+cp .env.example .env        # Windows: copy .env.example .env
+```
+
+Add your free Gemini key from [Google AI Studio](https://aistudio.google.com/) to `.env`:
+
+```
+GEMINI_API_KEY=your-key
+FLASK_SECRET_KEY=any-long-random-string
+```
 
 ```bash
 python server.py
 ```
 
-Then open http://127.0.0.1:5000.
+Then open http://127.0.0.1:5000. Without a key, the app runs in demo mode.
 
-Without `GEMINI_API_KEY`, the app runs in demo mode with 34 pre-loaded cities. Live AI
-plans take 45 to 65 seconds. During that time a "Generating…" page refreshes itself every 3 seconds.
+## Author
 
-## Project layout
-
-| Path | What it does |
-| --- | --- |
-| `server.py` | Flask routes: planner form, plan pages, login/register, saved trips |
-| `gemini_service.py` | Prompt, response schema and the Gemini API call |
-| `planner.py` | Demo plans, photo lookup, map coordinates, route map |
-| `data/` | Demo city plans and photo/coordinate lookup tables (JSON) |
-| `templates/` | Jinja HTML templates |
-| `static/` | Stylesheet and background image |
-
-## How it works without JavaScript
-
-- Budget, style and companion choices are radio buttons styled as chips.
-- City suggestions use the browser's built-in `<datalist>`.
-- Day tabs, login and saved trips are normal links and forms.
-- The route map is an SVG drawn by Python. It includes a link that opens the route in Google Maps.
-- POST forms are protected with a CSRF token.
+**Chetan** · [GitHub](https://github.com/Chetan0217)
